@@ -10,7 +10,28 @@
         {
           "On": true,
           "Name": "Synthesis",
-          "Patchers": [],
+          "Patchers": [
+            {
+              "$type": "Synthesis.Bethesda.Execution.Settings.GithubPatcherSettings, Synthesis.Bethesda.Execution",
+              "ID": "0ym2gxcy.14a",
+              "RemoteRepoPath": "https://github.com/tr4wzified/ExperienceMutagenPatcher",
+              "SelectedProjectSubpath": "ExperienceMutagenPatcher\\ExperienceMutagenPatcher.csproj",
+              "PatcherVersioning": "Branch",
+              "TargetTag": "",
+              "TargetCommit": "224844f4218d3e72b55cf5f616cedf94b16228cb",
+              "TargetBranch": "master",
+              "LatestTag": true,
+              "FollowDefaultBranch": true,
+              "AutoUpdateToBranchTip": false,
+              "MutagenVersionType": "Profile",
+              "ManualMutagenVersion": "",
+              "SynthesisVersionType": "Profile",
+              "ManualSynthesisVersion": "",
+              "LastSuccessfulRun": null,
+              "On": true,
+              "Nickname": "ExperienceMutagenPatcher"
+            }
+          ],
           "Expanded": true,
           "BlacklistedMods": []
         }

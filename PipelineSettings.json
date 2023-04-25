@@ -1,0 +1,36 @@
+{
+  "Version": 2,
+  "Profiles": [
+    {
+      "$type": "Synthesis.Bethesda.Execution.Settings.V2.SynthesisProfile, Synthesis.Bethesda.Execution",
+      "Nickname": "Skyrim Special Edition",
+      "ID": "scf0pn4o.mop",
+      "TargetRelease": "SkyrimSE",
+      "Groups": [
+        {
+          "On": true,
+          "Name": "Synthesis",
+          "Patchers": [],
+          "Expanded": true,
+          "BlacklistedMods": []
+        }
+      ],
+      "MutagenVersioning": "Manual",
+      "MutagenManualVersion": "0.41.0",
+      "SynthesisVersioning": "Manual",
+      "SynthesisManualVersion": "0.25.4",
+      "DataPathOverride": null,
+      "ConsiderPrereleaseNugets": false,
+      "LockToCurrentVersioning": false,
+      "FormIdPersistence": "None",
+      "IgnoreMissingMods": false,
+      "Localize": false,
+      "TargetLanguage": "Korean",
+      "UseUtf8ForEmbeddedStrings": false
+    }
+  ],
+  "Shortcircuit": true,
+  "WorkingDirectory": "",
+  "BuildCorePercentage": 0.5,
+  "DotNetPathOverride": ""
+}

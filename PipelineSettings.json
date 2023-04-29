@@ -17,7 +17,7 @@
               "RemoteRepoPath": "https://github.com/tr4wzified/ExperienceMutagenPatcher",
               "SelectedProjectSubpath": "ExperienceMutagenPatcher\\ExperienceMutagenPatcher.csproj",
               "PatcherVersioning": "Branch",
-              "TargetTag": "",
+              "TargetTag": null,
               "TargetCommit": "224844f4218d3e72b55cf5f616cedf94b16228cb",
               "TargetBranch": "master",
               "LatestTag": true,
@@ -27,7 +27,13 @@
               "ManualMutagenVersion": "",
               "SynthesisVersionType": "Profile",
               "ManualSynthesisVersion": "",
-              "LastSuccessfulRun": null,
+              "LastSuccessfulRun": {
+                "TargetRepo": "https://github.com/tr4wzified/ExperienceMutagenPatcher",
+                "ProjectSubpath": "ExperienceMutagenPatcher\\ExperienceMutagenPatcher.csproj",
+                "Commit": "224844f4218d3e72b55cf5f616cedf94b16228cb",
+                "MutagenVersion": "0.41.0",
+                "SynthesisVersion": "0.25.4"
+              },
               "On": true,
               "Nickname": "ExperienceMutagenPatcher"
             }

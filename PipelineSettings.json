@@ -36,6 +36,32 @@
               },
               "On": true,
               "Nickname": "ExperienceMutagenPatcher"
+            },
+            {
+              "$type": "Synthesis.Bethesda.Execution.Settings.GithubPatcherSettings, Synthesis.Bethesda.Execution",
+              "ID": "wynckhn4.wgj",
+              "RemoteRepoPath": "https://github.com/panthuncia/WaterForENBPatcher",
+              "SelectedProjectSubpath": "WaterForENBPatcher\\WaterForENBPatcher.csproj",
+              "PatcherVersioning": "Branch",
+              "TargetTag": null,
+              "TargetCommit": "2417d1c5545acdc641252fa5ee7b4030f4500f0a",
+              "TargetBranch": "main",
+              "LatestTag": true,
+              "FollowDefaultBranch": true,
+              "AutoUpdateToBranchTip": false,
+              "MutagenVersionType": "Profile",
+              "ManualMutagenVersion": "",
+              "SynthesisVersionType": "Profile",
+              "ManualSynthesisVersion": "",
+              "LastSuccessfulRun": {
+                "TargetRepo": "https://github.com/panthuncia/WaterForENBPatcher",
+                "ProjectSubpath": "WaterForENBPatcher\\WaterForENBPatcher.csproj",
+                "Commit": "2417d1c5545acdc641252fa5ee7b4030f4500f0a",
+                "MutagenVersion": "0.41.0",
+                "SynthesisVersion": "0.25.4"
+              },
+              "On": true,
+              "Nickname": "WaterForENBPatcher"
             }
           ],
           "Expanded": true,

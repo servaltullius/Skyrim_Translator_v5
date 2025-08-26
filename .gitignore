@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+/target/
+/dist/
+/build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+nul
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Tauri build outputs
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Large files that shouldn't be in git
+*.zip
+*.rar
+*.7z
+
+# Screenshots and images (except icons)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+!**/icons/*.ico
+!**/icons/*.png
+
+# Korean filename files (temporary)
+"프롬프트 os 설치 프로토콜.md"
+"화면 캡처 2025-08-26 211232.png"
+"화면 캡처 2025-08-26 224457.png"

@@ -1,0 +1,37 @@
+{
+  "identifier": "default",
+  "description": "Default desktop capabilities",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "store:default",
+    "stronghold:default"
+  ],
+  "allow": {
+    "commands": [
+      "open_xml",
+      "get_rows",
+      "start_translate",
+      "cancel_translate",
+      "save_xml",
+      "get_glossary",
+      "upsert_glossary",
+      "get_settings",
+      "update_settings",
+      "set_api_key_once"
+      ,
+      "update_entry_dst",
+      "clear_entry_dst"
+      ,
+      "export_errors"
+    ],
+    "events": [
+      "row_translated",
+      "job_progress",
+      "job_error",
+      "job_done",
+      "job_metrics"
+    ]
+  }
+}

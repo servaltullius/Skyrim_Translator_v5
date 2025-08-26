@@ -35,6 +35,10 @@ export default defineConfig(async () => ({
       drop: ['console', 'debugger']
     },
     rollupOptions: {
+      input: {
+        main: 'index.html',
+        editor: 'src/editor.html'
+      },
       output: {
         // 매번 다른 파일명으로 빌드
         entryFileNames: '[name]-[hash].js',

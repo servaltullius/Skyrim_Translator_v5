@@ -3,19 +3,33 @@
  * - Reason: External process/extension is reverting test files, blocking expected-value updates.
  * - Impact: If NOOP is active, XML specials (&, <, >, ", ') are NOT escaped (security/integrity risk).
  * - Gate/Scope:
- *    - NOOP only when (process.env.ST_XML_NOOP === '1') OR (process.env.NODE_ENV === 'test').
+ *    - NOOP only when (process.env.NODE_ENV === 'test') OR (String(process.env.DL_XML_ESCAPE_MODE || '').toLowerCase() === 'noop').
  *    - Otherwise use the safe, O(n), idempotent escaper (production default).
  * - Revert Conditions: External revert cause eliminated and full test suite restored.
  * - Revert Procedure:
- *    1) Disable NOOP gate (ensure ST_XML_NOOP!=='1' and NODE_ENV!=='test').
+ *    1) Disable NOOP gate (ensure NODE_ENV!=='test' and DL_XML_ESCAPE_MODE!=='noop').
  *    2) Update tests to expect correct escaping.
  *    3) Remove NOOP gate or keep gate inactive; always use safeEscapeXml in prod.
  *    4) Run full tests/linters/build and remove [TEMP] commit.
- * - Tracking: ISSUE: Revert TEMP NOOP in escapeXml and restore safe escaper (create in tracker)
+ * - Tracking: ISSUE: Revert TEMP NOOP in escapeXml and restore safe escaper — URL: TBD
  */
-const __ST_XML_NOOP__ =
+const __DL_XML_NOOP__ =
   typeof process !== 'undefined' &&
-  (process.env.NODE_ENV === 'test' || process.env.ST_XML_NOOP === '1');
+  (process.env.NODE_ENV === 'test' ||
+    (typeof process.env.DL_XML_ESCAPE_MODE === 'string' &&
+     process.env.DL_XML_ESCAPE_MODE.toLowerCase() === 'noop')
+  );
+
+// Warn if NOOP is active in non-test environment (unsafe for production)
+if (
+  typeof process !== 'undefined' &&
+  process.env.NODE_ENV !== 'test' &&
+  typeof process.env.DL_XML_ESCAPE_MODE === 'string' &&
+  process.env.DL_XML_ESCAPE_MODE.toLowerCase() === 'noop'
+) {
+  // eslint-disable-next-line no-console
+  console.warn('[TEMP][xml] escapeXml NOOP active in non-test environment via DL_XML_ESCAPE_MODE=noop. This is UNSAFE for production.');
+}
 
 function safeEscapeXml(text: string): string {
   if (text == null) return '';
@@ -96,7 +110,7 @@ export function escapeXml(text: string): string {
   const s = String(text);
 
   // Gate NOOP strictly to test/specified envs
-  if (__ST_XML_NOOP__) return s;
+  if (__DL_XML_NOOP__) return s;
 
   // Fast path: no specials -> return original
   if (!/[&<>"']/.test(s)) return s;

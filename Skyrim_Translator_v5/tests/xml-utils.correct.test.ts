@@ -56,3 +56,156 @@ describe('XML utils (correct)', () => {
     expect(escapeXml(s)).toBe(s);
   });
 });
+
+// -----------------------------
+// Extended coverage and checks
+// -----------------------------
+describe('XML utils — production behavior (isolated)', () => {
+  test('escapeXml escapes specials in production', () => {
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      delete process.env.DL_XML_ESCAPE_MODE;
+
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mod = require('../src/core/utils/xml');
+      const escaped = mod.escapeXml(`A & B <C> "D" E'F`);
+      expect(escaped).toBe(`A &amp; B &lt;C&gt; &quot;D&quot; E&apos;F`);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+
+      process.env.NODE_ENV = prevNODE;
+      if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+      else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+    });
+  });
+
+  test('preserves pre-escaped entities in production', () => {
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      delete process.env.DL_XML_ESCAPE_MODE;
+
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { escapeXml } = require('../src/core/utils/xml');
+      const input = `Fish &amp; Chips &lt;tag&gt; &#34; &#x27;`;
+      expect(escapeXml(input)).toBe(input);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+
+      process.env.NODE_ENV = prevNODE;
+      if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+      else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+    });
+  });
+
+  test('warns once in non-test env when DL_XML_ESCAPE_MODE=noop', () => {
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      process.env.DL_XML_ESCAPE_MODE = 'noop';
+
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mod = require('../src/core/utils/xml');
+
+      // Top-level load should warn exactly once and include the marker
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const msg = String((warnSpy.mock.calls[0] && warnSpy.mock.calls[0][0]) || '');
+      expect(msg).toMatch(/escapeXml NOOP/i);
+
+      // NOOP active => passthrough
+      expect(mod.escapeXml(`A & B`)).toBe(`A & B`);
+      warnSpy.mockRestore();
+
+      process.env.NODE_ENV = prevNODE;
+      if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+      else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+    });
+  });
+
+  test('idempotent in production path (seeded set)', () => {
+    function mulberry32(a: number) {
+      return function () {
+        let t = (a += 0x6d2b79f5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    function gen(seed: number, len: number, charset: string) {
+      const rnd = mulberry32(seed);
+      let s = '';
+      for (let i = 0; i < len; i++) s += charset.charAt(Math.floor(rnd() * charset.length));
+      return s;
+    }
+
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      delete process.env.DL_XML_ESCAPE_MODE;
+
+      const { escapeXml } = require('../src/core/utils/xml');
+      const charset = 'abcXYZ0123 &<>"\'';
+      for (let i = 0; i < 100; i++) {
+        const s = gen(1234 + i, 64, charset);
+        const e1 = escapeXml(s);
+        const e2 = escapeXml(e1);
+        expect(e2).toBe(e1);
+      }
+
+      process.env.NODE_ENV = prevNODE;
+      if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+      else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+    });
+  });
+
+  test('fast path: no specials returns same string', () => {
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      delete process.env.DL_XML_ESCAPE_MODE;
+
+      const { escapeXml } = require('../src/core/utils/xml');
+      const noSpecials = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-{}%$';
+      expect(escapeXml(noSpecials)).toBe(noSpecials);
+
+      process.env.NODE_ENV = prevNODE;
+      if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+      else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+    });
+  });
+
+  test('handles very long input efficiently', () => {
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      delete process.env.DL_XML_ESCAPE_MODE;
+
+      const { escapeXml } = require('../src/core/utils/xml');
+      const base = 'Lorem & ipsum <dolor> "sit" \'amet\' ';
+      let s = '';
+      for (let i = 0; i < 5000; i++) s += base; // ~150k chars
+      const out = escapeXml(s);
+
+      expect(out.includes('&amp;')).toBe(true);
+      expect(out.includes('&lt;')).toBe(true);
+      expect(out.includes('&gt;')).toBe(true);
+      expect(out.includes('&quot;')).toBe(true);
+      expect(out.includes('&apos;')).toBe(true);
+      expect(out.includes('<')).toBe(false);
+      expect(out.includes('>')).toBe(false);
+      expect(out.includes('"')).toBe(false);
+      expect(out.includes("'")).toBe(false);
+
+      process.env.NODE_ENV = prevNODE;
+      if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+      else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+    });
+  });
+});

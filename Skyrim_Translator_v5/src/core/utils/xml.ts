@@ -50,7 +50,6 @@ function hasXmlSpecials(s: string): boolean {
  */
 function preservedEntityEnd(s: string, start: number): number {
   const len = s.length;
-  if (s.charCodeAt(start) !== 38 /* & */) return -1;
 
   let i = start + 1;
   if (i >= len) return -1;
@@ -116,9 +115,6 @@ function safeEscapeXml(text: string): string {
   if (text == null) return '';
   const s = String(text);
   const len = s.length;
-
-  // Early return when nothing to escape
-  if (!hasXmlSpecials(s)) return s;
 
   // Use constants via concatenation to avoid accidental decoding in editors
   const AMP = '&' + 'amp;';

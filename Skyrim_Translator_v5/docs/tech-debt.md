@@ -81,6 +81,31 @@ Tracking
   - `tests/xml-utils.correct.test.ts` — runs in test env NOOP assumption
   - `docs/tech-debt.md` — this document
 
+## Complexity &amp; Performance Update (2025-09-02)
+- Scope: [src/core/utils/xml.ts](src/core/utils/xml.ts:1) — [escapeXml()](src/core/utils/xml.ts:108) 경로의 알고리즘·인지적 복잡도 개선
+- Algorithm
+  - Single-pass O(n) 구현 유지/강화: 사전 스캔(hasXmlSpecials)으로 특수문자 부재 시 원문 반환(0-alloc fast path)
+  - 보존 엔티티 판별을 정규식 없이 전진 스캔(preservedEntityEnd)으로 수행(백트래킹 제거)
+  - 치환은 청크 배열(parts) + join 1회로 버퍼 할당 최소화
+  - 가독성 목표: cyclomatic ≤ 8, cognitive ≤ 15, 함수 길이 ≤ 60줄을 준수하도록 구조화
+- Semantics
+  - 이미 이스케이프된 named/numeric(hex/dec) 엔티티 보존, 이중 이스케이프 금지
+  - Idempotent: escapeXml(escapeXml(s)) === escapeXml(s)
+  - NOOP 게이트 계약 불변: test 환경 또는 DL_XML_ESCAPE_MODE='noop'일 때만 NOOP
+  - 비-테스트 환경에서 DL_XML_ESCAPE_MODE='noop' 사용 시 경고 1회 출력(메시지에 “escapeXml NOOP” 포함)
+- Tests
+  - 확장 테스트: [tests/xml-utils.correct.test.ts](tests/xml-utils.correct.test.ts:60)
+    - 프로덕션 경로(모듈 격리 + env 조작)에서의 이스케이프/보존/아이도empotency/대용량 입력 검증
+    - NOOP 경고 1회 및 키워드 포함 검증
+    - 시드 기반 문자열 생성으로 라운드트립/아이도empotency 샘플 집합 테스트
+  - 커버리지 목표: src/core/utils/xml.ts 기준 Line ≥ 95%, Branch = 100%
+- Benchmark
+  - 스크립트: [scripts/bench-xml.js](scripts/bench-xml.js:1)
+  - 실행: `npm run bench:xml` (프로덕션 경로 강제, 다양한 분포·길이 케이스 측정)
+  - 지표: 처리량(MB/s), ΔHeap(KB), 케이스별 결과 테이블 출력
+- CI/Guards
+  - 문서상 릴리스 가드(문자열 grep)는 유지: `grep -q 'escapeXml NOOP' src/core/utils/xml.ts && exit 1`
+  - 향후 권고: ESLint 규칙으로 core/utils 내 process.env 접근 금지, dependency-cruiser로 레이어 위반 탐지, 빌드 타임 define로 NOOP 코드 배제 확인
 Notes
 - Keep TEMP changes isolated and traceable for easy revert.
 - Communicate the risk: NOOP must not be used in production; guardrails in CI are mandatory.

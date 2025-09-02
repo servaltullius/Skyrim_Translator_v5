@@ -182,7 +182,7 @@ export function unescapeXml(text: string): string {
   const APOS = '&' + 'apos;';
 
   // Numeric hex: &#xHHHH; (case-insensitive for 'x')
-  s = s.replace(/&#x([0-9A-Fa-f]+);/g, (_m, hex: string) =>
+  s = s.replace(/&#x([0-9A-Fa-f]+);/gi, (_m, hex: string) =>
     String.fromCodePoint(parseInt(hex, 16))
   );
 

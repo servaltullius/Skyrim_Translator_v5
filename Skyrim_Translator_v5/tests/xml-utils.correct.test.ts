@@ -209,3 +209,88 @@ describe('XML utils — production behavior (isolated)', () => {
     });
   });
 });
+// -----------------------------
+// Malformed/edge entity handling
+// -----------------------------
+describe('XML utils — malformed/edge entities (production path)', () => {
+  function withProdEnv(fn: (mod: any) => void) {
+    jest.isolateModules(() => {
+      const prevNODE = process.env.NODE_ENV;
+      const prevMODE = process.env.DL_XML_ESCAPE_MODE;
+      process.env.NODE_ENV = 'production';
+      delete process.env.DL_XML_ESCAPE_MODE;
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mod = require('../src/core/utils/xml');
+      try { fn(mod); } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = prevNODE;
+        if (prevMODE === undefined) delete process.env.DL_XML_ESCAPE_MODE;
+        else process.env.DL_XML_ESCAPE_MODE = prevMODE;
+      }
+    });
+  }
+
+  test('unknown named entity &amp;foo; is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&amp;foo;'.replace('&amp;', '&'))).toBe('&amp;foo;');
+      expect(escapeXml('&foo;')).toBe('&amp;foo;');
+    });
+  });
+
+  test('unterminated named entity &amp; becomes &amp;amp', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&amp'.replace('&amp', '&amp'))).toBe('&amp;amp');
+      expect(escapeXml('&amp')).toBe('&amp;amp');
+    });
+  });
+
+  test('numeric hex with no digits: "&#x;" is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&#x;')).toBe('&amp;#x;');
+    });
+  });
+
+  test('numeric hex with invalid digit: "&#xZ;" is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&#xZ;')).toBe('&amp;#xZ;');
+    });
+  });
+
+  test('numeric dec with no digits: "&#;" is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&#;')).toBe('&amp;#;');
+    });
+  });
+
+  test('numeric dec missing semicolon: "&#12" is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&#12')).toBe('&amp;#12');
+    });
+  });
+
+  test('ampersand followed by non-alpha non-# like "&1;" is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&1;')).toBe('&amp;1;');
+    });
+  });
+
+  test('uppercase X numeric hex is preserved in escape and decoded in unescape', () => {
+    withProdEnv(({ escapeXml, unescapeXml }) => {
+      const s = 'hex: &#X27;';
+      expect(escapeXml(s)).toBe(s); // preserved
+      expect(unescapeXml(s)).toBe("hex: '"); // decoded
+    });
+  });
+  test('numeric hex missing semicolon: "&#x27" is not preserved (escaped)', () => {
+    withProdEnv(({ escapeXml }) => {
+      expect(escapeXml('&#x27')).toBe('&amp;#x27');
+    });
+  });
+
+  test('unescape dec entity &#39; decodes to single quote', () => {
+    withProdEnv(({ unescapeXml }) => {
+      const s = 'dec: &#39;';
+      expect(unescapeXml(s)).toBe("dec: '");
+    });
+  });
+});

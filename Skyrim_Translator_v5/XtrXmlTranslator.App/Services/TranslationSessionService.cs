@@ -225,6 +225,21 @@ public sealed class TranslationSessionService
             int textLen = s.Tokens.Where(t => t.Type == InlineTokenType.Text).Sum(t => (t.Value ?? string.Empty).Length);
             bool hasTag = s.Tokens.Any(t => t.Type == InlineTokenType.XmlLikeTag);
             int TryParseInt2(string? v, int d) => int.TryParse(v, out var x) ? x : d;
+
+            // 1) 런타임 설정(세션 범위) 최우선
+            var sp = AppServices.Provider;
+            if (sp is not null)
+            {
+                var rtObj = sp.GetService(typeof(IRuntimeSettings));
+                if (rtObj is IRuntimeSettings rt)
+                {
+                    int minCharsRt = rt.TagHeavyMinText;
+                    bool enabledRt = rt.SkipTagHeavyEnabled;
+                    return enabledRt && hasTag && textLen <= (minCharsRt > 0 ? minCharsRt : 0);
+                }
+            }
+
+            // 2) 구성 우선 → 3) 레거시 환경변수 폴백
             bool enabledCfg = false; int minCharsCfg = 0;
             if (_configuration is not null)
             {

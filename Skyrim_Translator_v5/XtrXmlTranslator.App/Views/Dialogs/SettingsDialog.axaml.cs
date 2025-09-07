@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
+using System.Diagnostics;
+using Avalonia;
 
 namespace XtrXmlTranslator.App.Views.Dialogs;
 
@@ -98,6 +100,37 @@ public partial class SettingsDialog : Window
     }
 
     private void OnRefreshConfigClick(object? sender, RoutedEventArgs e) => LoadConfigStatus();
+
+    private async void OnPasteKeyClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var top = TopLevel.GetTopLevel(this);
+            if (top?.Clipboard != null)
+            {
+                var text = await top.Clipboard.GetTextAsync();
+                if (!string.IsNullOrEmpty(text)) ApiKeyBox.Text = text;
+            }
+        }
+        catch { /* ignore */ }
+    }
+
+    private void OnOpenConfigFolderClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dir = Services.AppConfigPaths.ConfigDir;
+            if (Directory.Exists(dir))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch { /* ignore */ }
+    }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e) => Close(false);
 

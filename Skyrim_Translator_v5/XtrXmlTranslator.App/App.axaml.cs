@@ -67,6 +67,7 @@ public partial class App : Application
             services.AddSingleton<IValidationOrchestrator, Services.ValidationOrchestrator>();
             services.AddSingleton<Services.TranslationSessionService>();
             services.AddSingleton<IConfigService, Services.ConfigService>();
+            services.AddSingleton<IRuntimeSettings, Services.RuntimeSettings>();
 
             var provider = services.BuildServiceProvider();
             Services.AppServices.Provider = provider;
@@ -82,8 +83,9 @@ public partial class App : Application
             var validator = provider.GetRequiredService<IValidationOrchestrator>();
             var session = provider.GetRequiredService<Services.TranslationSessionService>();
             var config = provider.GetRequiredService<IConfigService>();
+            var runtimeSettings = provider.GetRequiredService<IRuntimeSettings>();
 
-            window.DataContext = new MainWindowViewModel(secrets, selector, fullText, rowFilter, validator, session, config);
+            window.DataContext = new MainWindowViewModel(secrets, selector, fullText, rowFilter, validator, session, config, runtimeSettings);
             desktop.MainWindow = window;
         }
 

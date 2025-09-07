@@ -9,7 +9,10 @@ using XtrXmlTranslator.App.Views;
 using Serilog;
 using System;
 using XtrXmlTranslator.Core.Glossary;
+using XtrXmlTranslator.Core.Translate;
+using XtrXmlTranslator.App.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 
 namespace XtrXmlTranslator.App;
@@ -47,16 +50,38 @@ public partial class App : Application
                 .AddJsonFile(Path.Combine("Config", "appsettings.json"), optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables(prefix: "XTRANS_");
             var configuration = configBuilder.Build();
-            var appConfig = new Services.ConfigRoot(configuration);
 
+            // DI container
+            var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(configuration);
+            services.AddSingleton<IAppConfig>(sp => new Services.ConfigRoot(configuration));
+            services.AddSingleton<Services.ResilientGeminiFactory>();
+            services.AddSingleton<ITranslatorFactory>(sp =>
+            {
+                var appCfg = sp.GetRequiredService<IAppConfig>();
+                var defaultFactory = sp.GetRequiredService<Services.ResilientGeminiFactory>();
+                return new Services.TranslatorFactorySelector(appCfg, defaultFactory);
+            });
+            services.AddSingleton<ISecretsProvider, Services.CombinedSecretsProvider>();
+            services.AddSingleton<IRowFilterService, Services.RowFilterService>();
+            services.AddSingleton<IValidationOrchestrator, Services.ValidationOrchestrator>();
+            services.AddSingleton<Services.TranslationSessionService>();
+            services.AddSingleton<IConfigService, Services.ConfigService>();
+
+            var provider = services.BuildServiceProvider();
+
+            // UI objects
             var window = new MainWindow();
-            var secrets = new Services.CombinedSecretsProvider();
-            var selector = new Services.TranslatorFactorySelector(appConfig, new Services.ResilientGeminiFactory());
             var fullText = new Services.FullTextDialogService(window);
-            var rowFilter = new Services.RowFilterService();
-            var validator = new Services.ValidationOrchestrator();
-            var session = new Services.TranslationSessionService(configuration);
-            var config = new Services.ConfigService();
+
+            // Compose ViewModel from DI + UI-bound services
+            var secrets = provider.GetRequiredService<ISecretsProvider>();
+            var selector = provider.GetRequiredService<ITranslatorFactory>();
+            var rowFilter = provider.GetRequiredService<IRowFilterService>();
+            var validator = provider.GetRequiredService<IValidationOrchestrator>();
+            var session = provider.GetRequiredService<Services.TranslationSessionService>();
+            var config = provider.GetRequiredService<IConfigService>();
+
             window.DataContext = new MainWindowViewModel(secrets, selector, fullText, rowFilter, validator, session, config);
             desktop.MainWindow = window;
         }

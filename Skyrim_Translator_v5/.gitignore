@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Node/Tauri legacy
+node_modules/
+dist/
+build/
+.vite/
+.yarn/
+.npm/
+*.log
+
+# Rust/Tauri
+**/target/
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local artifacts (do not track generated reviews/snapshots)
+artifacts/
+artifacts/**
+!artifacts/.keep
+

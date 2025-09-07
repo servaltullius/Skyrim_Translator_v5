@@ -33,7 +33,6 @@ public sealed class TranslationSessionService
 
     public TranslationSessionService()
     {
-        // 기본: 환경변수만 로드(prefix: XTRANS_)
         _configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables(prefix: "XTRANS_")
             .Build();
@@ -59,7 +58,31 @@ public sealed class TranslationSessionService
         cb.OnStatus?.Invoke("번역 시작");
         Log.Information("Translate session start: rows={Rows} lang={Lang}", rows.Count, languageCode);
 
-        // 초기화
+        InitRows(rows);
+
+        var srx = BuildSrx(languageCode);
+        var (segments, rowIndexOfSegment, rowMaskMaps) = BuildSegments(rows, glossary, compiled, srx, cb);
+
+        var sysPrompt = BuildSystemPrompt(prompt, glossary, segments);
+
+        if (!TryBuildGeminiOptions(secrets, sysPrompt, out var opt, cb)) return;
+        var translator = translatorFactory.Create(opt, new InMemoryTm());
+
+        var (includedSegments, mapIncludedToOriginal, skipPredicate) = FilterTagHeavySegments(segments, secrets);
+
+        var subOutputs = await TranslateIncludedAsync(translator, includedSegments, mapIncludedToOriginal, rowIndexOfSegment, cb, ct);
+
+        var outputs = ReassembleOutputs(segments, subOutputs, mapIncludedToOriginal, skipPredicate);
+
+        ReportProgress(cb, total: segments.Count);
+
+        PostProcessAndEmit(rows, glossary, compiled, rowIndexOfSegment, rowMaskMaps, outputs, cb);
+
+        SummarizeAndLog(rows, segments.Count, cb, opt);
+    }
+
+    private static void InitRows(IList<TranslationRowVM> rows)
+    {
         foreach (var row in rows)
         {
             row.TranslationText = string.Empty;
@@ -67,12 +90,17 @@ public sealed class TranslationSessionService
             row.Warning = string.Empty;
             row.Status = RowStatus.Auto;
         }
+    }
 
-        // SRX 준비
+    private static SrxEngine BuildSrx(string languageCode)
+    {
         var srxDoc = SrxLoader.LoadFromString(SrxPresets.ForLanguage(languageCode));
-        var srx = SrxCompiler.Compile(srxDoc, languageCode);
+        return SrxCompiler.Compile(srxDoc, languageCode);
+    }
 
-        // 마스킹/세그먼트 수집
+    private static (List<TokenSegment> segments, List<int> rowIndexOfSegment, Dictionary<int, List<(string Token, string Original)>> rowMaskMaps)
+        BuildSegments(IList<TranslationRowVM> rows, GlossaryStore glossary, GlossaryCompiled? compiled, SrxEngine srx, TranslationSessionCallbacks cb)
+    {
         var segments = new List<TokenSegment>();
         var rowIndexOfSegment = new List<int>();
         var rowMaskMaps = new Dictionary<int, List<(string Token, string Original)>>();
@@ -116,45 +144,46 @@ public sealed class TranslationSessionService
             }
         }
 
-        // 배치 요약/시스템 프롬프트
+        return (segments, rowIndexOfSegment, rowMaskMaps);
+    }
+
+    private static string BuildSystemPrompt(PromptConfig prompt, GlossaryStore glossary, List<TokenSegment> segments)
+    {
         var batchSources = segments
             .SelectMany(seg => seg.Tokens)
             .Where(t => t.Type == InlineTokenType.Text)
             .Select(t => t.Value);
         var summary = GlossaryApply.SummarizeForBatch(batchSources, glossary, limit: 100);
-        var sysPrompt = PromptBuilder.BuildSystemInstruction(prompt, summary);
+        return PromptBuilder.BuildSystemInstruction(prompt, summary);
+    }
 
-        // 환경/옵션
+    private bool TryBuildGeminiOptions(ISecretsProvider secrets, string sysPrompt, out GeminiOptions opt, TranslationSessionCallbacks cb)
+    {
+        opt = default!;
         int TryParseInt(string? s, int def) => int.TryParse(s, out var v) ? v : def;
         double TryParseDouble(string? s, double def) => double.TryParse(s, out var v) ? v : def;
 
-        // 1) API 키 (환경변수/파일)
         var apiKey = secrets.Get("GEMINI_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             cb.OnStatus?.Invoke("GEMINI_API_KEY 미설정: 번역 건너뜀");
             Log.Warning("GEMINI_API_KEY not set; skipping translation session");
-            return;
+            return false;
         }
 
-        // 2) 구성 바인딩(Gemini)
         var gemini = new GeminiSettings();
         _configuration?.GetSection("Gemini")?.Bind(gemini);
-
-        // Provider는 AiGoogle만 지원 (VertexAI 비지원). 다른 값이면 경고 후 AiGoogle로 강제.
         if (!string.IsNullOrWhiteSpace(gemini.Provider) && !gemini.Provider.Equals("AiGoogle", StringComparison.OrdinalIgnoreCase))
         {
             Log.Warning("Gemini Provider set to {Provider} but only AiGoogle is supported. Falling back to AiGoogle.", gemini.Provider);
         }
 
-        // 3) 레거시 환경 변수로 일부 값 덮어쓰기(있을 때만)
         int retryMax = TryParseInt(secrets.Get("XTRANS_RETRY_MAX"), gemini.RetryMaxAttempts);
         int baseMs = TryParseInt(secrets.Get("XTRANS_RETRY_BASEMS"), (int)gemini.RetryBaseDelay.TotalMilliseconds);
         int hsMs = TryParseInt(secrets.Get("XTRANS_TIMEOUT_HANDSHAKE_MS"), (int)gemini.HttpHandshakeTimeout.TotalMilliseconds);
         string modelOverride = secrets.Get("XTRANS_GEMINI_MODEL") ?? string.Empty;
         double tempOverride = TryParseDouble(secrets.Get("XTRANS_GEMINI_TEMPERATURE"), gemini.Temperature);
 
-        // 유효성/기본값 보정
         string model = string.IsNullOrWhiteSpace(modelOverride) ? gemini.Model : modelOverride;
         if (string.IsNullOrWhiteSpace(model)) { model = "gemini-2.5-flash"; Log.Warning("Gemini model not set; using default {Model}", model); }
         double temperature = tempOverride;
@@ -164,9 +193,9 @@ public sealed class TranslationSessionService
         int rpm = gemini.RequestsPerMinute > 0 ? gemini.RequestsPerMinute : 10;
         if (rpm != gemini.RequestsPerMinute) Log.Warning("RequestsPerMinute invalid: {Val}. Using default 10.", gemini.RequestsPerMinute);
 
-        // 4) GeminiOptions 구성
-        int handshakeRetries = 0; int segWarn = 0, segErr = 0; long paceWaitTicks = 0;
-        var opt = new GeminiOptions {
+        int handshakeRetries = 0;
+        opt = new GeminiOptions
+        {
             Provider = GeminiProvider.AiGoogle,
             ApiKey = apiKey,
             Model = model,
@@ -182,24 +211,21 @@ public sealed class TranslationSessionService
             HttpTimeout = gemini.HttpTimeout,
             OnHandshakeRetry = (attempt, delay, code) => { handshakeRetries = attempt; Log.Information("Handshake retry attempt={Attempt} delayMs={Delay} status={Status}", attempt, (int)delay.TotalMilliseconds, code?.ToString() ?? "-" ); },
             OnHandshakeSuccess = code => Log.Information("Handshake success status={Status} totalRetries={Retries}", code, handshakeRetries),
-            OnPaceWait = t => System.Threading.Interlocked.Add(ref paceWaitTicks, t.Ticks)
+            OnPaceWait = t => System.Threading.Interlocked.Add(ref _paceWaitTicks, t.Ticks)
         };
-        var tm = new InMemoryTm();
-        var translator = translatorFactory.Create(opt, tm);
+        return true;
+    }
 
-        int total = segments.Count;
+    private long _paceWaitTicks;
 
-        // 태그-헤비 세그먼트 스킵 옵션: XTRANS_SKIP_TAG_HEAVY(존재하면 활성), XTRANS_TAG_HEAVY_MIN_TEXT(기본 0)
+    private (List<TokenSegment> includedSegments, List<int> mapIncludedToOriginal, Func<TokenSegment, bool> skipPredicate) FilterTagHeavySegments(List<TokenSegment> segments, ISecretsProvider secrets)
+    {
         bool SkipTagHeavy(TokenSegment s)
         {
             int textLen = s.Tokens.Where(t => t.Type == InlineTokenType.Text).Sum(t => (t.Value ?? string.Empty).Length);
             bool hasTag = s.Tokens.Any(t => t.Type == InlineTokenType.XmlLikeTag);
-
             int TryParseInt2(string? v, int d) => int.TryParse(v, out var x) ? x : d;
-
-            // 구성 우선 → 레거시 환경변수 폴백
-            bool enabledCfg = false;
-            int minCharsCfg = 0;
+            bool enabledCfg = false; int minCharsCfg = 0;
             if (_configuration is not null)
             {
                 var sEnabled = _configuration["Translator:SkipTagHeavy"];
@@ -222,7 +248,18 @@ public sealed class TranslationSessionService
                 includedSegments.Add(segments[i]);
             }
         }
+        return (includedSegments, mapIncludedToOriginal, SkipTagHeavy);
+    }
 
+    private async Task<IReadOnlyList<string>> TranslateIncludedAsync(
+        ITranslator translator,
+        List<TokenSegment> includedSegments,
+        List<int> mapIncludedToOriginal,
+        List<int> rowIndexOfSegment,
+        TranslationSessionCallbacks cb,
+        CancellationToken ct)
+    {
+        int segWarn = 0, segErr = 0;
         IReadOnlyList<string> subOutputs = Array.Empty<string>();
         if (includedSegments.Count > 0)
         {
@@ -252,8 +289,15 @@ public sealed class TranslationSessionService
                     Log.Error("Segment error seg={Seg} msg={Msg}", segIdx, message);
                 });
         }
+        return subOutputs;
+    }
 
-        // 전체 outputs 재구성(스킵된 세그먼트는 원문 유지)
+    private static string[] ReassembleOutputs(
+        List<TokenSegment> segments,
+        IReadOnlyList<string> subOutputs,
+        List<int> mapIncludedToOriginal,
+        Func<TokenSegment, bool> skipPredicate)
+    {
         var outputs = new string[segments.Count];
         int k = 0;
         for (int i = 0; i < segments.Count; i++)
@@ -262,33 +306,43 @@ public sealed class TranslationSessionService
             {
                 outputs[i] = subOutputs[k++];
             }
-            else if (SkipTagHeavy(segments[i]))
+            else if (skipPredicate(segments[i]))
             {
                 outputs[i] = string.Concat(segments[i].Tokens.Select(t => t.Value));
             }
             else
             {
-                // 안전장치(이상 경로)
                 outputs[i] = string.Concat(segments[i].Tokens.Select(t => t.Value));
             }
         }
+        return outputs;
+    }
 
-        // 진행률 마무리(구간성 표시)
+    private static void ReportProgress(TranslationSessionCallbacks cb, int total)
+    {
         for (int i = 1; i <= total; i++)
         {
             cb.OnProgress?.Invoke((double)i / total * 100.0, $"{i}/{total} 세그먼트");
         }
+    }
 
-        // 세그먼트 결과를 행별로 조립(태그 포함)
+    private static void PostProcessAndEmit(
+        IList<TranslationRowVM> rows,
+        GlossaryStore glossary,
+        GlossaryCompiled? compiled,
+        List<int> rowIndexOfSegment,
+        Dictionary<int, List<(string Token, string Original)>> rowMaskMaps,
+        string[] outputs,
+        TranslationSessionCallbacks cb)
+    {
         var perRow = new Dictionary<int, System.Text.StringBuilder>();
-for (int segIdx = 0; segIdx < outputs.Length; segIdx++)
+        for (int segIdx = 0; segIdx < outputs.Length; segIdx++)
         {
             var rowIdx = rowIndexOfSegment[segIdx];
             if (!perRow.TryGetValue(rowIdx, out var sb)) { sb = new System.Text.StringBuilder(); perRow[rowIdx] = sb; }
             sb.Append(outputs[segIdx]);
         }
 
-        // 사후 처리(언마스크 → ENFORCE/PREFER → 검증)
         var affectedRows = rowIndexOfSegment.Distinct().ToList();
         foreach (var rowIdx in affectedRows)
         {
@@ -300,12 +354,10 @@ for (int segIdx = 0; segIdx < outputs.Length; segIdx++)
                 {
                     text = GlossaryApply.UnmaskProtectedTerms(text, map);
                 }
-                // ENFORCE/PREFER 적용
                 text = compiled is not null
                     ? compiled.ApplyReplacement(text)
                     : GlossaryApply.ApplyPostReplace(text, glossary.Entries);
 
-                // 검증
                 var issues = Validator.Validate(row.SourceText, text);
                 cb.OnRowFinal?.Invoke(rowIdx, text, issues);
             }
@@ -315,12 +367,15 @@ for (int segIdx = 0; segIdx < outputs.Length; segIdx++)
                 Log.Error(ex, "Post-processing failed for row {Index}", row.Index);
             }
         }
+    }
 
+    private void SummarizeAndLog(IList<TranslationRowVM> rows, int totalSegments, TranslationSessionCallbacks cb, GeminiOptions opt)
+    {
         int warnCount = rows.Count(r => !r.TagOk);
         int errCount = rows.Count(r => r.Status == RowStatus.Error);
-        var paceMs = (long)TimeSpan.FromTicks(paceWaitTicks).TotalMilliseconds;
-        cb.OnSummary?.Invoke(total, warnCount, errCount, paceMs);
+        var paceMs = (long)TimeSpan.FromTicks(_paceWaitTicks).TotalMilliseconds;
+        cb.OnSummary?.Invoke(totalSegments, warnCount, errCount, paceMs);
         cb.OnStatus?.Invoke("완료");
-        Log.Information("Translate complete: segments={Total} warnings={Warn} errors={Err} segWarnCallbacks={SegWarn} segErrCallbacks={SegErr} paceWaitMs={Pace}", total, warnCount, errCount, segWarn, segErr, paceMs);
+        Log.Information("Translate complete: segments={Total} warnings={Warn} errors={Err} paceWaitMs={Pace} provider={Provider} model={Model}", totalSegments, warnCount, errCount, paceMs, opt.Provider, opt.Model);
     }
 }

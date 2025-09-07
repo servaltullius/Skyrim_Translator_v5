@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using XtrXmlTranslator.App.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
 
@@ -27,13 +28,14 @@ public partial class SettingsDialog : Window
         try
         {
             var envName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
-            var cfg = new ConfigurationBuilder()
-                .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-                .AddJsonFile($"appsettings.{envName}.json", optional: true, reloadOnChange: false)
-                .AddJsonFile(Path.Combine("Config", "appsettings.json"), optional: true, reloadOnChange: false)
-                .AddEnvironmentVariables(prefix: "XTRANS_")
-                .Build();
+            IConfiguration cfg = AppServices.Provider?.GetService<IConfiguration>()
+                ?? new ConfigurationBuilder()
+                    .SetBasePath(AppContext.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                    .AddJsonFile($"appsettings.{envName}.json", optional: true, reloadOnChange: false)
+                    .AddJsonFile(Path.Combine("Config", "appsettings.json"), optional: true, reloadOnChange: false)
+                    .AddEnvironmentVariables(prefix: "XTRANS_")
+                    .Build();
 
             string m(string? v, string def = "") => string.IsNullOrWhiteSpace(v) ? def : v;
             string translatorMode = m(cfg["Translator:Mode"], "Default");

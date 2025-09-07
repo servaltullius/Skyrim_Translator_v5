@@ -69,6 +69,7 @@ public partial class App : Application
             services.AddSingleton<IConfigService, Services.ConfigService>();
 
             var provider = services.BuildServiceProvider();
+            Services.AppServices.Provider = provider;
 
             // UI objects
             var window = new MainWindow();

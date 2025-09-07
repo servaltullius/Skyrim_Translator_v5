@@ -141,6 +141,12 @@ public sealed class TranslationSessionService
         var gemini = new GeminiSettings();
         _configuration?.GetSection("Gemini")?.Bind(gemini);
 
+        // Provider는 AiGoogle만 지원 (VertexAI 비지원). 다른 값이면 경고 후 AiGoogle로 강제.
+        if (!string.IsNullOrWhiteSpace(gemini.Provider) && !gemini.Provider.Equals("AiGoogle", StringComparison.OrdinalIgnoreCase))
+        {
+            Log.Warning("Gemini Provider set to {Provider} but only AiGoogle is supported. Falling back to AiGoogle.", gemini.Provider);
+        }
+
         // 3) 레거시 환경 변수로 일부 값 덮어쓰기(있을 때만)
         int retryMax = TryParseInt(secrets.Get("XTRANS_RETRY_MAX"), gemini.RetryMaxAttempts);
         int baseMs = TryParseInt(secrets.Get("XTRANS_RETRY_BASEMS"), (int)gemini.RetryBaseDelay.TotalMilliseconds);
@@ -148,17 +154,27 @@ public sealed class TranslationSessionService
         string modelOverride = secrets.Get("XTRANS_GEMINI_MODEL") ?? string.Empty;
         double tempOverride = TryParseDouble(secrets.Get("XTRANS_GEMINI_TEMPERATURE"), gemini.Temperature);
 
+        // 유효성/기본값 보정
+        string model = string.IsNullOrWhiteSpace(modelOverride) ? gemini.Model : modelOverride;
+        if (string.IsNullOrWhiteSpace(model)) { model = "gemini-2.5-flash"; Log.Warning("Gemini model not set; using default {Model}", model); }
+        double temperature = tempOverride;
+        if (temperature < 0 || temperature > 1) { Log.Warning("Gemini temperature out of range [0,1]: {Temp}. Using default 0.2.", temperature); temperature = 0.2; }
+        int maxConcurrency = gemini.MaxConcurrency > 0 ? gemini.MaxConcurrency : 4;
+        if (maxConcurrency != gemini.MaxConcurrency) Log.Warning("MaxConcurrency invalid: {Val}. Using default 4.", gemini.MaxConcurrency);
+        int rpm = gemini.RequestsPerMinute > 0 ? gemini.RequestsPerMinute : 10;
+        if (rpm != gemini.RequestsPerMinute) Log.Warning("RequestsPerMinute invalid: {Val}. Using default 10.", gemini.RequestsPerMinute);
+
         // 4) GeminiOptions 구성
         int handshakeRetries = 0; int segWarn = 0, segErr = 0; long paceWaitTicks = 0;
         var opt = new GeminiOptions {
-            Provider = string.Equals(gemini.Provider, "VertexAI", StringComparison.OrdinalIgnoreCase) ? GeminiProvider.VertexAI : GeminiProvider.AiGoogle,
+            Provider = GeminiProvider.AiGoogle,
             ApiKey = apiKey,
-            Model = string.IsNullOrWhiteSpace(modelOverride) ? gemini.Model : modelOverride,
-            ProjectId = gemini.ProjectId,
+            Model = model,
+            ProjectId = null,
             Location = gemini.Location,
-            Temperature = tempOverride,
-            MaxConcurrency = gemini.MaxConcurrency,
-            RequestsPerMinute = gemini.RequestsPerMinute,
+            Temperature = temperature,
+            MaxConcurrency = maxConcurrency,
+            RequestsPerMinute = rpm,
             SystemInstruction = sysPrompt,
             RetryMaxAttempts = retryMax,
             RetryBaseDelay = TimeSpan.FromMilliseconds(baseMs),

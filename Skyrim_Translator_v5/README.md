@@ -55,7 +55,6 @@ XtrXmlTranslator는 xTranslator 등에서 추출한 XML을 태그/게임 변수 
   ```json
   {
     "Gemini": {
-      "Provider": "AiGoogle",
       "Model": "gemini-2.5-flash",
       "ProjectId": "",
       "Location": "us-central1",

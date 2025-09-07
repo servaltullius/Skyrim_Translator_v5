@@ -4,7 +4,7 @@ namespace XtrXmlTranslator.App.Configuration;
 
 public sealed class GeminiSettings
 {
-    public string Provider { get; set; } = "AiGoogle"; // AiGoogle | VertexAI
+    public string Provider { get; set; } = "AiGoogle"; // Fixed: AiGoogle only (VertexAI unsupported)
     public string Model { get; set; } = "gemini-2.5-flash";
     public string? ProjectId { get; set; }
     public string Location { get; set; } = "us-central1";

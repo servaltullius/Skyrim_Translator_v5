@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="XtrXmlTranslator.App.Views.Dialogs.SettingsDialog"
+        Width="520" Height="220" Title="설정">
+  <Border Padding="12">
+    <Grid RowDefinitions="Auto,* ,Auto" ColumnDefinitions="*">
+      <StackPanel Orientation="Vertical" Spacing="8">
+        <TextBlock Text="Gemini API 키" FontWeight="Bold"/>
+        <TextBox x:Name="ApiKeyBox" Watermark="API 키를 입력하세요"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Content="API 연결 테스트" Click="OnHealthCheckClick"/>
+          <TextBlock x:Name="HealthStatus" Foreground="Gray"/>
+        </StackPanel>
+        <TextBlock Text="보안 안내: 키는 로컬 Config/secrets.json에 평문 저장됩니다. 저장소 공유/커밋 금지." Foreground="Gray" TextWrapping="Wrap"/>
+
+        <Separator Margin="0,8,0,4"/>
+        <TextBlock Text="구성 상태(읽기 전용)" FontWeight="Bold"/>
+        <Border Background="{DynamicResource Surface1}" Padding="8" CornerRadius="4">
+          <ScrollViewer Height="100">
+            <TextBlock x:Name="ConfigStatus" FontFamily="Cascadia Code, Consolas, Menlo" TextWrapping="Wrap"/>
+          </ScrollViewer>
+        </Border>
+      </StackPanel>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+        <Button Content="취소" Click="OnCancelClick"/>
+        <Button Content="저장" Click="OnSaveClick"/>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

@@ -18,6 +18,11 @@ public partial class SettingsDialog : Window
     {
         var s = SecretsFileStore.Load();
         ApiKeyBox.Text = s.GeminiApiKey ?? string.Empty;
+        LoadConfigStatus();
+    }
+
+    private void LoadConfigStatus()
+    {
         // 구성 상태 표시
         try
         {
@@ -40,7 +45,8 @@ public partial class SettingsDialog : Window
             string gemRpm = m(cfg["Gemini:RequestsPerMinute"], "10");
             string gemTimeout = m(cfg["Gemini:HttpTimeout"], "00:01:00");
             string key = new CombinedSecretsProvider().Get("GEMINI_API_KEY");
-            string keyState = string.IsNullOrWhiteSpace(key) ? "(없음)" : "(설정됨)";
+            bool keyMissing = string.IsNullOrWhiteSpace(key);
+            string keyState = keyMissing ? "(없음)" : "(설정됨)";
 
             ConfigStatus.Text =
                 $"Env: {envName}\n" +
@@ -53,12 +59,43 @@ public partial class SettingsDialog : Window
                 $"Gemini.RequestsPerMinute: {gemRpm}\n" +
                 $"Gemini.HttpTimeout: {gemTimeout}\n" +
                 $"GEMINI_API_KEY: {keyState}";
+
+            // 키 상태 색상 표시: 없음이면 Danger 색상, 있으면 기본
+            if (KeyStateText is not null)
+            {
+                KeyStateText.Text = keyState;
+                if (keyMissing)
+                {
+                    // Danger 리소스가 있을 경우 사용
+                    if (this.TryFindResource("Danger", out var danger) && danger is Avalonia.Media.IBrush br)
+                        KeyStateText.Foreground = br;
+                }
+                else
+                {
+                    KeyStateText.ClearValue(TextBlock.ForegroundProperty);
+                }
+            }
         }
         catch (Exception ex)
         {
             ConfigStatus.Text = $"구성 읽기 오류: {ex.Message}";
         }
     }
+
+    private async void OnCopyConfigClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var top = TopLevel.GetTopLevel(this);
+            if (top?.Clipboard != null)
+            {
+                await top.Clipboard.SetTextAsync(ConfigStatus.Text ?? string.Empty);
+            }
+        }
+        catch { /* ignore */ }
+    }
+
+    private void OnRefreshConfigClick(object? sender, RoutedEventArgs e) => LoadConfigStatus();
 
     private void OnCancelClick(object? sender, RoutedEventArgs e) => Close(false);
 

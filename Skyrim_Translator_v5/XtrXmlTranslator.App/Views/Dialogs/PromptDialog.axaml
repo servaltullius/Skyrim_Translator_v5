@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="XtrXmlTranslator.App.Views.Dialogs.PromptDialog"
+        x:CompileBindings="False"
+        Width="800" Height="600" Title="프롬프트 설정">
+  <Border Padding="12">
+    <Grid RowDefinitions="Auto,* ,Auto">
+    <TextBlock Text="기본 vec 지시문" FontWeight="Bold"/>
+    <TextBox Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap"
+             x:Name="BaseVecBox"/>
+    <Grid Grid.Row="2" RowDefinitions="Auto,* ,Auto" Margin="0,12,0,0">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <CheckBox Content="현재 배치 용어 요약을 시스템 인스트럭션에 삽입"
+                  x:Name="InjectGlossaryCheck"/>
+      </StackPanel>
+      <TextBlock Grid.Row="1" Text="사용자 커스텀 지시문" FontWeight="Bold" Margin="0,8,0,4"/>
+      <TextBox Grid.Row="2" AcceptsReturn="True" TextWrapping="Wrap"
+               x:Name="UserCustomBox" Watermark="예: 톤, 문체, 금지어, 길이 제한 등"/>
+    </Grid>
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+      <Button Content="취소" Click="OnCancelClick"/>
+      <Button Content="저장" Click="OnSaveClick"/>
+    </StackPanel>
+    </Grid>
+  </Border>
+</Window>

@@ -1,0 +1,130 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:XtrXmlTranslator.App.ViewModels"
+        x:Class="XtrXmlTranslator.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="1400" Height="900" MinWidth="1100" MinHeight="720"
+        Background="{DynamicResource Surface0}"
+        Icon="/Assets/avalonia-logo.ico"
+Title="XTrans — xTranslator XML 번역기"
+        KeyDown="OnWindowKeyDown">
+
+  <Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <Grid RowDefinitions="Auto,* ,Auto" ColumnDefinitions="*">
+    <Border Background="{DynamicResource Surface1}" Padding="8">
+      <WrapPanel>
+        <Button Content="열기" Click="OnOpenXmlClick"/>
+        <Button Content="선택 번역" Command="{Binding TranslateSelectedCommand}" IsEnabled="{Binding CanTranslate}"/>
+        <Button Content="중지" Command="{Binding CancelCommand}"/>
+        <Button Content="저장" Command="{Binding SaveCommand}"/>
+        <Button Content="모두 재검증" Command="{Binding RevalidateAllCommand}" ToolTip.Tip="모든 행을 재검증"/>
+        <Button Content="다음 경고" Command="{Binding NextWarningCommand}" ToolTip.Tip="다음 경고 행으로 이동 (F2: 다음, Shift+F2: 이전)"/>
+        <TextBox x:Name="SearchBox" Watermark="검색…" Width="200" Text="{Binding Query}" ToolTip.Tip="Ctrl+F로 포커스"/>
+        <CheckBox Content="에러만" IsChecked="{Binding FilterErrors}" ToolTip.Tip="경고/에러 행만 보기"/>
+        <CheckBox Content="태그-헤비 스킵" IsChecked="{Binding SkipTagHeavyOption}" ToolTip.Tip="태그만 많고 텍스트가 적은 세그먼트를 모델 호출 없이 유지"/>
+        <StackPanel Orientation="Horizontal" Spacing="4" Margin="16,0,0,0" VerticalAlignment="Center">
+          <CheckBox Content="자동 높이" IsChecked="{Binding IsAutoRowHeight}"/>
+          <TextBlock Text="행 높이" Margin="8,0,0,0"/>
+          <Slider Minimum="40" Maximum="400" Width="160" Value="{Binding FixedRowHeight}" IsEnabled="{Binding IsFixedRowHeight}"/>
+          <TextBlock Text="{Binding FixedRowHeight, StringFormat={}{0:0}}" Width="36" HorizontalAlignment="Left"/>
+        </StackPanel>
+        <Button Content="프롬프트" Click="OnOpenPromptClick"/>
+        <Button Content="용어집" Click="OnOpenGlossaryClick"/>
+        <Button Content="설정" Click="OnOpenSettingsClick"/>
+      </WrapPanel>
+    </Border>
+
+    <DataGrid Grid.Row="1"
+              ItemsSource="{Binding ViewRows}"
+              SelectedItem="{Binding SelectedRow}"
+              IsReadOnly="False"
+              CanUserReorderColumns="True"
+              CanUserResizeColumns="True"
+              CanUserSortColumns="True"
+              GridLinesVisibility="All"
+              BorderBrush="{DynamicResource Surface1}"
+              BorderThickness="1"
+              RowHeight="{Binding RowHeight}"
+              Background="{DynamicResource Surface0}"
+              DoubleTapped="OnDataGridDoubleTapped">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="번호" Width="Auto" Binding="{Binding Index}"/>
+        <DataGridTemplateColumn Header="원문" Width="3*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:TranslationRowVM">
+              <Border Background="Transparent">
+                <Border.ContextMenu>
+                  <ContextMenu>
+<MenuItem Header="재검증(이 행)" Command="{Binding $parent[Window].DataContext.RevalidateRowCmdCommand}" CommandParameter="{Binding}"/>
+<MenuItem Header="자동 교정(이 행)" Command="{Binding $parent[Window].DataContext.AutoFixRowCmdCommand}" CommandParameter="{Binding}"/>
+                  </ContextMenu>
+                </Border.ContextMenu>
+                <TextBlock Text="{Binding SourceText}"
+                           TextWrapping="NoWrap"
+                           TextTrimming="CharacterEllipsis"
+                           FontFamily="Cascadia Code, Consolas, Menlo"/>
+              </Border>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="번역문" Width="3*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:TranslationRowVM">
+              <Border Background="Transparent">
+                <Border.ContextMenu>
+                  <ContextMenu>
+<MenuItem Header="재검증(이 행)" Command="{Binding $parent[Window].DataContext.RevalidateRowCmdCommand}" CommandParameter="{Binding}"/>
+<MenuItem Header="자동 교정(이 행)" Command="{Binding $parent[Window].DataContext.AutoFixRowCmdCommand}" CommandParameter="{Binding}"/>
+                  </ContextMenu>
+                </Border.ContextMenu>
+                <TextBlock Text="{Binding TranslationText}"
+                           TextWrapping="NoWrap"
+                           TextTrimming="CharacterEllipsis"
+                           FontFamily="Cascadia Code, Consolas, Menlo"/>
+              </Border>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+          <DataGridTemplateColumn.CellEditingTemplate>
+            <DataTemplate x:DataType="vm:TranslationRowVM">
+              <TextBox Text="{Binding TranslationText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       AcceptsReturn="True"
+                       TextWrapping="NoWrap"
+                       FontFamily="Cascadia Code, Consolas, Menlo"
+                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellEditingTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="상태" Width="*" Binding="{Binding Status}"/>
+        <DataGridCheckBoxColumn Header="태그OK" Width="Auto" Binding="{Binding TagOk}"/>
+        <DataGridTemplateColumn Header="경고" Width="2*">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="vm:TranslationRowVM">
+              <Border>
+                <Border.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="재검증(이 행)" Command="{Binding $parent[Window].DataContext.RevalidateRowCmdCommand}" CommandParameter="{Binding}"/>
+                    <MenuItem Header="자동 교정(이 행)" Command="{Binding $parent[Window].DataContext.AutoFixRowCmdCommand}" CommandParameter="{Binding}"/>
+                  </ContextMenu>
+                </Border.ContextMenu>
+                <TextBlock Text="{Binding Warning}" Foreground="{DynamicResource Danger}" ToolTip.Tip="{Binding Warning}"/>
+              </Border>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <Border Grid.Row="2" Background="{DynamicResource Surface1}" Padding="8">
+      <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" ShowProgressText="True" Width="300"/>
+        <TextBlock Text="{Binding ProgressDetail}" Foreground="{DynamicResource TextSecondary}"/>
+        <TextBlock Text="{Binding SessionSummary}" Margin="16,0,0,0" Foreground="{DynamicResource TextSecondary}"/>
+        <TextBlock Text="{Binding StatusText}" Margin="16,0,0,0" Foreground="{DynamicResource TextSecondary}"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

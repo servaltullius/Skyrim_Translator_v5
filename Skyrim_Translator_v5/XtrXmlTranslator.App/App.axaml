@@ -1,0 +1,33 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="XtrXmlTranslator.App.App"
+             xmlns:local="using:XtrXmlTranslator.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+        <StyleInclude Source="avares://Avalonia.Controls.TreeDataGrid/Themes/Fluent.axaml"/>
+    </Application.Styles>
+
+    <Application.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.ThemeDictionaries>
+          <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="Surface0">#121212</SolidColorBrush>
+            <SolidColorBrush x:Key="Surface1">#1A1A1A</SolidColorBrush>
+            <SolidColorBrush x:Key="Card">#202020</SolidColorBrush>
+            <SolidColorBrush x:Key="TextPrimary">#FFFFFF</SolidColorBrush>
+            <SolidColorBrush x:Key="TextSecondary">#CCCCCC</SolidColorBrush>
+            <SolidColorBrush x:Key="Accent">#4F8EF7</SolidColorBrush>
+            <SolidColorBrush x:Key="Danger">#FF4D4F</SolidColorBrush>
+            <Thickness x:Key="CardPadding">8</Thickness>
+          </ResourceDictionary>
+        </ResourceDictionary.ThemeDictionaries>
+      </ResourceDictionary>
+    </Application.Resources>
+</Application>

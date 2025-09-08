@@ -1,0 +1,5 @@
+﻿{
+  Path: root/Entry/Text,
+  Text: Hello <Alias=Player> %.0f,
+  outText: [Hello ]<Alias=Player>[ ]%.0f
+}

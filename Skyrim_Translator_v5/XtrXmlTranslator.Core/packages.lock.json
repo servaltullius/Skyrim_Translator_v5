@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Polly": {
+        "type": "Direct",
+        "requested": "[8.4.0, )",
+        "resolved": "8.4.0",
+        "contentHash": "z2EeUutuy49jBQyZ5s2FUuTCGx3GCzJ0cJ2HbjWwks94TsC6bKTtAHKBkMZOa/DyYRl5yIX7MshvMTWl1J6RNg==",
+        "dependencies": {
+          "Polly.Core": "8.4.0"
+        }
+      },
+      "Polly.Core": {
+        "type": "Transitive",
+        "resolved": "8.4.0",
+        "contentHash": "3AZxuP//pxOeBo9tQs7/tz4Z5TTbu4BYfjpaXZD0JYKJo98ngN9TMUz1nybh4k0ykWkMBpGZALV/AmVIE3ew7A=="
+      }
+    }
+  }
+}

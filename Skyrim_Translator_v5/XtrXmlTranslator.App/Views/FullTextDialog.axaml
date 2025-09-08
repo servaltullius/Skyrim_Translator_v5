@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="XtrXmlTranslator.App.Views.FullTextDialog"
+        Width="1200" Height="850" MinWidth="1000" MinHeight="700"
+        CanResize="True"
+        Title="전체 텍스트 편집"
+        KeyDown="OnDialogKeyDown"
+        Opened="OnDialogOpened"
+        Closed="OnDialogClosed">
+  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*">
+    <Border Background="{DynamicResource Surface1}" Padding="8">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="컨텍스트:"/>
+        <TextBlock x:Name="ContextText"/>
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="1*,1*" RowDefinitions="*" Margin="8">
+      <Grid.Styles>
+        <Style Selector="TextBlock.header">
+          <Setter Property="FontWeight" Value="Bold"/>
+          <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+      </Grid.Styles>
+
+      <Grid Grid.Column="0" Margin="0,0,8,0" RowDefinitions="Auto,*">
+        <TextBlock Classes="header" Text="원문"/>
+        <TextBox Grid.Row="1" x:Name="SourceBox" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Visible"
+                 FontFamily="Cascadia Code, Consolas, Menlo"
+                 FontSize="14"/>
+      </Grid>
+
+      <Grid Grid.Column="1" Margin="8,0,0,0" RowDefinitions="Auto,*">
+        <TextBlock Classes="header" Text="번역문"/>
+        <TextBox Grid.Row="1" x:Name="TranslationBox" AcceptsReturn="True" TextWrapping="Wrap"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Visible"
+                 FontFamily="Cascadia Code, Consolas, Menlo"
+                 FontSize="14"/>
+      </Grid>
+    </Grid>
+
+    <Border Grid.Row="2" Background="{DynamicResource Surface1}" Padding="8">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Content="취소" Click="OnCancelClick"/>
+        <Button Content="적용" Click="OnApplyClick"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>
+

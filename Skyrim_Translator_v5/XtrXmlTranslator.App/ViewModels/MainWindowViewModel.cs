@@ -302,7 +302,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Log.Information("Glossary compiled: entries={Count}", Glossary.Entries.Count);
     }
 
-public MainWindowViewModel() : this(new EnvSecretsProvider(), new ResilientGeminiFactory(), new DummyFullTextDialogService(), new RowFilterService(), new ValidationOrchestrator(), new TranslationSessionService(), new ConfigService(), new RuntimeSettings()) { }
+    public MainWindowViewModel() : this(new EnvSecretsProvider(), new ResilientGeminiFactory(), new DummyFullTextDialogService(), new RowFilterService(), new ValidationOrchestrator(), new TranslationSessionService(), new ConfigService(), new RuntimeSettings()) { }
 
     public MainWindowViewModel(ISecretsProvider secrets, ITranslatorFactory translatorFactory, IFullTextDialogService fullTextService)
         : this(secrets, translatorFactory, fullTextService, new RowFilterService(), new ValidationOrchestrator(), new TranslationSessionService(), new ConfigService(), new RuntimeSettings())

@@ -24,7 +24,7 @@ public sealed record TranslationSessionCallbacks(
     Action<int, string>? OnRowError = null,
     Action<int, string, IReadOnlyList<ValidationIssue>>? OnRowFinal = null,
     Action<string>? OnStatus = null,
-    Action<int,int,int,long>? OnSummary = null // total, warn, err, paceWaitMs
+    Action<int, int, int, long>? OnSummary = null // total, warn, err, paceWaitMs
 );
 
 public sealed class TranslationSessionService
@@ -209,7 +209,7 @@ public sealed class TranslationSessionService
             RetryBaseDelay = TimeSpan.FromMilliseconds(baseMs),
             HttpHandshakeTimeout = TimeSpan.FromMilliseconds(hsMs),
             HttpTimeout = gemini.HttpTimeout,
-            OnHandshakeRetry = (attempt, delay, code) => { handshakeRetries = attempt; Log.Information("Handshake retry attempt={Attempt} delayMs={Delay} status={Status}", attempt, (int)delay.TotalMilliseconds, code?.ToString() ?? "-" ); },
+            OnHandshakeRetry = (attempt, delay, code) => { handshakeRetries = attempt; Log.Information("Handshake retry attempt={Attempt} delayMs={Delay} status={Status}", attempt, (int)delay.TotalMilliseconds, code?.ToString() ?? "-"); },
             OnHandshakeSuccess = code => Log.Information("Handshake success status={Status} totalRetries={Retries}", code, handshakeRetries),
             OnPaceWait = t => System.Threading.Interlocked.Add(ref _paceWaitTicks, t.Ticks)
         };

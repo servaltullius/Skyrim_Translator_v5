@@ -13,11 +13,11 @@ public sealed class TokenSegment
 
 public static class SrxSegmenter
 {
-    private static readonly Regex RxMr    = new Regex("\\sMr\\.$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled,  TimeSpan.FromMilliseconds(200));
-    private static readonly Regex RxEtc   = new Regex("\\s[Ee]tc\\.$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
-    private static readonly Regex RxUK    = new Regex("\\sU\\.K\\.$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled,  TimeSpan.FromMilliseconds(200));
-    private static readonly Regex RxUpper = new Regex("^\\s[A-Z]", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled,      TimeSpan.FromMilliseconds(200));
-    private static readonly Regex RxLower = new Regex("^\\s[a-z]", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled,      TimeSpan.FromMilliseconds(200));
+    private static readonly Regex RxMr = new Regex("\\sMr\\.$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
+    private static readonly Regex RxEtc = new Regex("\\s[Ee]tc\\.$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
+    private static readonly Regex RxUK = new Regex("\\sU\\.K\\.$", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
+    private static readonly Regex RxUpper = new Regex("^\\s[A-Z]", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
+    private static readonly Regex RxLower = new Regex("^\\s[a-z]", RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
     public static (string flat, List<int> globalBreaks) DebugFlattenAndBreaks(IReadOnlyList<InlineToken> tokens, SrxEngine engine)
     {
         var flat = new System.Text.StringBuilder();
@@ -111,7 +111,7 @@ public static class SrxSegmenter
             for (int p = 1; p + 1 < text.Length; p++)
             {
                 char prevCh = text[p - 1];
-                char curCh  = text[p];
+                char curCh = text[p];
                 char nextCh = text[p + 1];
                 if ((prevCh == '.' || prevCh == '!' || prevCh == '?') && curCh == ' ')
                 {
@@ -211,7 +211,7 @@ public static class SrxSegmenter
             {
                 bool beforeOk = rule.BeforeRegex is null || rule.BeforeRegex.IsMatch(s[..pos]);
                 if (!beforeOk) continue;
-                bool afterOk  = rule.AfterRegex is null || rule.AfterRegex.IsMatch(s[pos..]);
+                bool afterOk = rule.AfterRegex is null || rule.AfterRegex.IsMatch(s[pos..]);
                 if (!afterOk) continue;
 
                 if (rule.IsBreak)

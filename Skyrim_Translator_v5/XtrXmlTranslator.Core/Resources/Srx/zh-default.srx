@@ -1,1 +1,7 @@
-<srx version="2.0" xmlns="http://www.lisa.org/srx20" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><header segmentsubflows="yes" cascade="yes"><formathandle type="start" include="no"/><formathandle type="end" include="yes"/><formathandle type="isolated" include="no"/></header><body><languagerules><languagerule languagerulename="Default"><rule break="yes"><beforebreak>[。！？；]</beforebreak><afterbreak></afterbreak></rule><rule break="yes"><beforebreak>[.?!;]</beforebreak><afterbreak>\s</afterbreak></rule></languagerule></languagerules><maprules><languagemap languagepattern=".*" languagerulename="Default"/></maprules></body></srx>
+<srx version="2.0" xmlns="http://www.lisa.org/srx20" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><header segmentsubflows="yes" cascade="yes"><formathandle type="start" include="no"/><formathandle type="end" include="yes"/><formathandle type="isolated" include="no"/></header><body><languagerules><languagerule languagerulename="Default">
+  <!-- Do not break between CJK sentence punctuation and closing quotes/brackets -->
+  <rule break="no"><beforebreak>[。！？；]</beforebreak><afterbreak>[”’」』）】]+</afterbreak></rule>
+  <!-- Break at bare CJK sentence punctuation -->
+  <rule break="yes"><beforebreak>[。！？；]</beforebreak><afterbreak></afterbreak></rule>
+  <rule break="yes"><beforebreak>[.?!;]</beforebreak><afterbreak>\s</afterbreak></rule>
+</languagerule></languagerules><maprules><languagemap languagepattern=".*" languagerulename="Default"/></maprules></body></srx>

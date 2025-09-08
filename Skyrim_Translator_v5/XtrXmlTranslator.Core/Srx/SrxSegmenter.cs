@@ -108,6 +108,9 @@ public static class SrxSegmenter
                 breakPoints = new List<int>();
                 internalBreaks[idx] = breakPoints;
             }
+            // Precompute ordered SRX rules for suppression checks
+            var orderedRules = engine.Rules.OrderBy(r => r.Order).ToList();
+
             for (int p = 1; p + 1 < text.Length; p++)
             {
                 char prevCh = text[p - 1];
@@ -124,6 +127,21 @@ public static class SrxSegmenter
                     if (!suppress && System.Text.RegularExpressions.Regex.IsMatch(text[..p], "\\s[Ee]tc\\.$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)
                         && char.IsLower(nextCh))
                         suppress = true;
+                    // SRX explicit no-break rules
+                    if (!suppress)
+                    {
+                        var left = text[..p];
+                        var right = text[p..];
+                        foreach (var r in orderedRules)
+                        {
+                            if (r.IsBreak) continue;
+                            bool bOk = r.BeforeRegex is null || r.BeforeRegex.IsMatch(left);
+                            if (!bOk) continue;
+                            bool aOk = r.AfterRegex is null || r.AfterRegex.IsMatch(right);
+                            if (!aOk) continue;
+                            suppress = true; break;
+                        }
+                    }
                     // U.K. + Uppercase → break (do not suppress)
                     if (!suppress && System.Text.RegularExpressions.Regex.IsMatch(text[..p], "\\sU\\.K\\.$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)
                         && char.IsUpper(nextCh))

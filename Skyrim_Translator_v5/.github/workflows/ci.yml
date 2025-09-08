@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop, "feature/**" ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/packages.lock.json
+
+
+      - name: Restore (locked mode)
+        run: dotnet restore --locked-mode
+
+      - name: Install dotnet-format
+        run: dotnet tool install -g dotnet-format
+
+      - name: Verify formatting
+        shell: bash
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet format --verify-no-changes || (echo "Run 'dotnet format' locally to fix formatting." && exit 1)
+
+      - name: Build Core
+        run: dotnet build XtrXmlTranslator.Core/XtrXmlTranslator.Core.csproj -c Release --no-restore
+
+      - name: Build App
+        run: dotnet build XtrXmlTranslator.App/XtrXmlTranslator.App.csproj -c Release --no-restore
+
+      - name: Test (XtrXmlTranslator.Tests)
+        run: dotnet test XtrXmlTranslator.Tests/XtrXmlTranslator.Tests.csproj -c Release --no-build --logger "trx;LogFileName=test_results.trx" --collect "XPlat Code Coverage"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/**/*cobertura*.xml
+
+  benchmarks:
+    name: Benchmarks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[bench]')
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/packages.lock.json
+
+      - name: Restore (locked mode)
+        run: dotnet restore --locked-mode
+
+      - name: Build Benchmarks
+        run: dotnet build XtrXmlTranslator.Benchmarks/XtrXmlTranslator.Benchmarks.csproj -c Release --no-restore
+
+      # 옵션: 실제 벤치 실행은 수 분~수십 분 소요될 수 있으므로 필요 시 수동(workflow_dispatch)으로만 실행 권장
+      # - name: Run Benchmarks (optional)
+      #   if: github.event_name == 'workflow_dispatch'
+      #   run: dotnet run -p XtrXmlTranslator.Benchmarks/XtrXmlTranslator.Benchmarks.csproj -c Release --no-build
+

@@ -2,3 +2,5 @@
 !.gitignore
 !PipelineSettings.json
 !GuiSettings.json
+!Skyrim_Translator_v5/
+!Skyrim_Translator_v5/**

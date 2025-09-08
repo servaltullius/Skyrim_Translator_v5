@@ -1,0 +1,16 @@
+{
+  Path: root/Paragraph/Run,
+  Text: Alpha <Alias=Player>,
+  outText: [Alpha ]<Alias=Player>
+}
+{
+  Path: root/Paragraph/Run,
+  Text:  %d and {0} ,
+  outText: [ ]%d[ and ]{0}[ ]
+}
+{
+  Path: root/Paragraph/Span/Inner,
+  Text: Beta <Alias=Dragon>,
+  outText: [Beta ]<Alias=Dragon>
+}
+

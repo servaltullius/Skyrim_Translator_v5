@@ -1,0 +1,6 @@
+{
+  Path: root/Entry/Text,
+  Text:   Hello <b/>   world  ,
+  outText: [  Hello ]<b/>[   world  ]
+}
+

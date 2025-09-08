@@ -1,8 +1,8 @@
 # .NET
-bin/
-obj/
-*.user
-*.suo
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
 
 # Node/Tauri legacy
 node_modules/
@@ -21,6 +21,11 @@ build/
 Thumbs.db
 .vscode/
 .idea/
+
+# Test outputs
+**/TestResults/
+**/TestResults/*.trx
+**/TestResults/**/*cobertura*.xml
 
 # Local artifacts (do not track generated reviews/snapshots)
 artifacts/

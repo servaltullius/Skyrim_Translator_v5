@@ -1,0 +1,11 @@
+{
+  Path: root/Entry/Text,
+  Text: Hello <Alias=Player> %1$d and {0:N2} & %{name},
+  outText: [Hello ]<Alias=Player>[ ]%1$d[ and {0:N2} & ]%{name}
+}
+{
+  Path: root/Entry/Text,
+  Text: Hola <Alias=Dragon> %.2f and {1:D3} & %{who},
+  outText: [Hola ]<Alias=Dragon>[ ]%.2f[ and {1:D3} & ]%{who}
+}
+

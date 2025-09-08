@@ -21,6 +21,23 @@ public partial class SettingsDialog : Window
     {
         var s = SecretsFileStore.Load();
         ApiKeyBox.Text = s.GeminiApiKey ?? string.Empty;
+
+        // 런타임 설정 초기값 로드
+        try
+        {
+            var sp = AppServices.Provider;
+            if (sp != null)
+            {
+                var rtObj = sp.GetService(typeof(IRuntimeSettings));
+                if (rtObj is IRuntimeSettings rt)
+                {
+                    RtSkipTagHeavyBox.IsChecked = rt.SkipTagHeavyEnabled;
+                    RtTagHeavyMinTextBox.Text = rt.TagHeavyMinText.ToString();
+                }
+            }
+        }
+        catch { /* ignore */ }
+
         LoadConfigStatus();
     }
 
@@ -137,6 +154,24 @@ public partial class SettingsDialog : Window
     private void OnSaveClick(object? sender, RoutedEventArgs e)
     {
         SecretsFileStore.Save(new SecretsPayload { GeminiApiKey = ApiKeyBox.Text });
+
+        // 런타임 설정 저장(세션 범위)
+        try
+        {
+            var sp = AppServices.Provider;
+            if (sp != null)
+            {
+                var rtObj = sp.GetService(typeof(IRuntimeSettings));
+                if (rtObj is IRuntimeSettings rt)
+                {
+                    rt.SkipTagHeavyEnabled = RtSkipTagHeavyBox.IsChecked == true;
+                    if (int.TryParse(RtTagHeavyMinTextBox.Text, out var v) && v >= 0) rt.TagHeavyMinText = v;
+                    else rt.TagHeavyMinText = 0;
+                }
+            }
+        }
+        catch { /* ignore */ }
+
         Close(true);
     }
 
